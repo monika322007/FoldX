@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="FoldX is a simple folding board that folds shirts, tops and trousers neatly and uniformly in under 3 seconds.">
+<title>FoldX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky nav, split hero with live fold demo, then stacked full-width bands. Single committed blue/orange look. */
+:root{
+  --blue:#2E2E36; --blue-mid:#1F1F25; --navy:#151518; --night:#0C0C0E;
+  --orange:#FF4B3E; --orange-dark:#B3261E; --sky:#EDEDF0; --board:#E6E6EA;
+  --soft:#B9B9C4; --edge:#3A3A44; --ink-soft:#4A4A56;
+  --head:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:calc(76px + env(safe-area-inset-top,0px))}
+body{font-family:var(--body);color:#fff;background:var(--navy);line-height:1.6;font-size:17px;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--navy)}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:3px solid var(--orange);outline-offset:3px;border-radius:6px}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--head);line-height:1.1;letter-spacing:-.02em;text-wrap:balance}
+h2{font-size:clamp(1.9rem,4vw,2.7rem);font-weight:800}
+.lede{color:var(--soft);max-width:56ch;margin-top:14px}
+section{padding-block:92px}
+
+.btn{display:inline-block;font:600 1rem var(--body);padding:14px 26px;border-radius:999px;border:2px solid transparent;cursor:pointer;transition:transform .15s,background .15s,box-shadow .15s;text-align:center}
+.btn:hover{transform:translateY(-2px)}
+.btn-cta{background:var(--orange);color:var(--navy);box-shadow:0 8px 20px rgba(255,75,62,.35)}
+.btn-cta:hover{background:#FF6A5E}
+.btn-ghost{border-color:#fff;color:#fff;background:transparent}
+.btn-ghost:hover{background:rgba(255,255,255,.14)}
+.btn-dark{background:var(--navy);color:#fff}
+.btn-dark:hover{background:var(--night)}
+.btn-sm{padding:10px 20px;font-size:.95rem}
+
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--navy);border-bottom:1px solid rgba(255,255,255,.12)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:68px;gap:16px}
+.logo{font:800 1.7rem var(--head);color:#fff;letter-spacing:-.03em}
+.logo b{color:var(--orange)}
+.links{display:flex;gap:30px;font-weight:500}
+.links a{color:var(--soft);padding:6px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.links a:hover{color:#fff;border-color:var(--orange)}
+
+.hero{padding-block:72px 96px;background:linear-gradient(135deg,var(--blue),var(--blue-mid) 60%,var(--navy))}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+.hero-grid>*{min-width:0}
+.hero h1{font-size:clamp(2.5rem,5.6vw,4.2rem);font-weight:800}
+.hero p{font-size:1.2rem;color:#E4E4EC;margin:22px 0 32px;max-width:46ch}
+.btns{display:flex;flex-wrap:wrap;gap:14px}
+.stats{display:flex;gap:28px;margin-top:36px;color:var(--soft);font-size:.95rem}
+.stats strong{display:block;font:800 1.5rem var(--head);color:var(--orange)}
+
+.stage{background:var(--navy);border-radius:28px;padding:28px;box-shadow:0 30px 60px rgba(0,0,0,.5);text-align:center}
+.board{perspective:1400px;background:var(--board);border-radius:20px;height:320px;display:flex;justify-content:center;align-items:center;position:relative}
+.shirt{position:relative;width:240px;height:240px;transform-style:preserve-3d}
+.guides{position:absolute;inset:0;transform:translateZ(-2px);
+  background:
+   linear-gradient(rgba(21,21,24,.35) 50%,transparent 50%) 80px 0/2px 12px repeat-y,
+   linear-gradient(rgba(21,21,24,.35) 50%,transparent 50%) 160px 0/2px 12px repeat-y,
+   linear-gradient(90deg,rgba(21,21,24,.35) 50%,transparent 50%) 0 150px/12px 2px repeat-x}
+.s{position:absolute;inset:0;background:var(--orange);
+   transform:translateZ(0) rotateY(0);
+   transition:transform 1s cubic-bezier(.65,0,.35,1) 1s,background-color 1s ease 1s}
+.tl{clip-path:polygon(48px 28px,80px 15.7px,80px 150px,62px 150px,62px 82px,30px 100px,0 70px);transform-origin:80px 50%}
+.tc{clip-path:polygon(80px 15.7px,95px 10px,145px 10px,160px 15.7px,160px 150px,80px 150px)}
+.tr{clip-path:polygon(192px 28px,160px 15.7px,160px 150px,178px 150px,178px 82px,210px 100px,240px 70px);transform-origin:160px 50%}
+.bw{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:0 150px;
+    transform:translateZ(0) rotateX(0);transition:transform 1s cubic-bezier(.65,0,.35,1) 0s}
+.bl{clip-path:polygon(62px 150px,80px 150px,80px 240px,62px 240px);transform-origin:80px 50%}
+.bc{clip-path:polygon(80px 150px,160px 150px,160px 240px,80px 240px)}
+.br{clip-path:polygon(160px 150px,178px 150px,178px 240px,160px 240px);transform-origin:160px 50%}
+.collar{position:absolute;left:95px;top:10px;width:50px;height:20px;background:#A81F18;border-radius:0 0 26px 26px;transform:translateZ(10px)}
+.tag{position:absolute;left:0;right:0;bottom:12px;color:var(--navy);font-weight:600;font-size:.95rem;opacity:0;transition:opacity .4s}
+.stage .btn{margin-top:22px}
+
+.stage.done .s{transition-delay:0s}
+.stage.done .tl,.stage.done .bl{transform:translateZ(2px) rotateY(180deg);background:#E03A2E}
+.stage.done .tr,.stage.done .br{transform:translateZ(2px) rotateY(-180deg);background:#E03A2E}
+.stage.done .bc{background:#C22E24}
+.stage.done .bw{transform:translateZ(6px) rotateX(180deg);transition-delay:1s}
+.stage.done .tag{opacity:1;transition-delay:2s}
+.stage:not(.done) .s{transition-delay:1s}
+
+.features{background:var(--navy)}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:48px}
+.card{min-width:0;background:var(--blue-mid);border:2px solid var(--edge);border-radius:20px;padding:28px 24px;transition:transform .2s,box-shadow .2s,border-color .2s}
+.card:hover,.card:focus-visible{transform:translateY(-6px);box-shadow:0 18px 36px rgba(0,0,0,.35);border-color:var(--orange)}
+.ico{width:56px;height:56px;border-radius:16px;background:var(--orange);display:grid;place-items:center;font-size:1.7rem;margin-bottom:18px;transition:transform .2s}
+.card:hover .ico{transform:rotate(-8deg) scale(1.08)}
+.card h3{font-size:1.25rem;margin-bottom:8px}
+.card p{color:var(--soft);font-size:.98rem}
+
+.how{background:linear-gradient(160deg,var(--orange),#FF7A66);color:var(--navy)}
+.how .lede{color:#3A0F0B}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:56px;counter-reset:s}
+.step{position:relative;min-width:0;background:var(--navy);color:#fff;border-radius:22px;padding:30px 26px 28px}
+.step::before{counter-increment:s;content:counter(s);position:absolute;top:-20px;left:26px;width:42px;height:42px;border-radius:50%;background:var(--blue);color:#fff;border:4px solid #FF6B5C;font:800 1.15rem var(--head);display:grid;place-items:center}
+.step svg{width:100%;height:120px;margin-bottom:16px}
+.step h3{font-size:1.3rem;margin-bottom:6px}
+.step p{color:var(--soft);font-size:.98rem}
+
+.pricing{background:var(--blue)}
+.pricing .lede{color:#E4E4EC}
+.price-grid{display:grid;grid-template-columns:minmax(0,420px);gap:24px;margin-top:48px}
+.price{background:var(--navy);border-radius:24px;padding:34px 30px}
+.price.best{background:var(--orange);color:var(--navy);box-shadow:0 20px 44px rgba(0,0,0,.4)}
+.price h3{font-size:1.3rem}
+.amt{font:800 2.8rem var(--head);margin:10px 0 4px}
+.price .note{color:var(--soft)}
+.price.best .note{color:#3A0F0B}
+.price ul{list-style:none;margin:18px 0 26px;color:var(--soft)}
+.price.best ul{color:var(--navy)}
+.price li{padding:6px 0 6px 28px;position:relative}
+.price li::before{content:"✓";position:absolute;left:0;font-weight:700;color:var(--orange)}
+.price.best li::before{color:var(--navy)}
+.price .btn{width:100%}
+.mailbox{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin-top:32px;padding:20px 24px;background:var(--navy);border-radius:20px;max-width:780px}
+.mailbox span{color:var(--soft)}
+.mailbox code{font:600 1.05rem var(--body);color:#fff;background:rgba(255,255,255,.1);padding:6px 12px;border-radius:10px;user-select:all;overflow-wrap:anywhere}
+
+.price-grid{grid-template-columns:repeat(2,minmax(0,380px))}
+.order{margin-top:40px;max-width:780px;background:var(--navy);border-radius:24px;padding:32px 30px}
+.order h3{font-size:1.5rem}
+.order-note{color:var(--soft);font-size:.95rem;margin-top:10px}
+.order code{font:600 1rem var(--body);color:#fff;background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px;user-select:all;overflow-wrap:anywhere}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+.field{min-width:0;display:flex;flex-direction:column;gap:6px}
+.field.wide{grid-column:1/-1}
+.field label{font-weight:600;font-size:.9rem;color:var(--soft)}
+.field input,.field select,.field textarea{width:100%;font:500 1rem var(--body);color:#fff;background:var(--night);border:2px solid var(--edge);border-radius:14px;padding:12px 14px}
+.field textarea{resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--orange)}
+.total{margin-top:20px;color:var(--soft)}
+.total strong{font:800 1.6rem var(--head);color:#fff;margin-left:8px}
+#fOut{margin-top:14px;white-space:pre-wrap;overflow-wrap:anywhere;font:500 .92rem/1.5 var(--body);background:var(--night);border:2px dashed var(--edge);border-radius:14px;padding:14px 16px;color:var(--soft);min-width:0}
+.order .btns{margin-top:20px}
+.status{min-height:1.6em;margin-top:12px;font-weight:600;color:var(--orange)}
+.faqs{background:var(--sky);color:var(--navy)}
+.faqs h2{color:var(--navy)}
+.faq-list{max-width:780px;margin-top:40px}
+.faq{border-bottom:2px solid rgba(21,21,24,.18)}
+.faq button{width:100%;text-align:left;background:none;border:0;padding:22px 0;font:600 1.15rem var(--body);color:var(--navy);cursor:pointer;display:flex;justify-content:space-between;gap:20px;align-items:center}
+.faq button::after{content:"+";font:600 1.8rem/1 var(--body);color:var(--blue);transition:transform .25s}
+.faq button[aria-expanded="true"]::after{transform:rotate(45deg);color:var(--orange-dark)}
+.ans{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s}
+.ans>div{overflow:hidden}
+.ans p{color:var(--ink-soft);padding-bottom:22px}
+.faq.open .ans{grid-template-rows:1fr}
+
+footer{background:var(--night);color:var(--soft);padding-block:56px 32px}
+.f-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:28px}
+.f-top code{font:inherit;user-select:all;overflow-wrap:anywhere}
+.copy{margin-top:36px;padding-top:22px;border-top:1px solid rgba(255,255,255,.18);font-size:.92rem}
+
+@media(max-width:960px){
+  .hero-grid{grid-template-columns:1fr}
+  .grid4{grid-template-columns:repeat(2,1fr)}
+  .steps{grid-template-columns:1fr;gap:44px}
+}
+@media(max-width:700px){
+  .fields{grid-template-columns:1fr}
+  .order{padding:26px 20px}
+  .price-grid{grid-template-columns:1fr}
+  section{padding-block:68px}
+  .links{display:none}
+  .grid4,.price-grid{grid-template-columns:1fr}
+  .stats{flex-wrap:wrap;gap:18px}
+  .board{transform:scale(.9)}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+
+
+<nav aria-label="Main">
+  <div class="wrap nav-in">
+    <a href="#top" class="logo" aria-label="FoldX home">Fold<b>X</b></a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#how">How It Works</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <a href="#order" class="btn btn-cta btn-sm">Order Now</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <h1>Perfectly Folded Clothes in Just 3 Seconds</h1>
+      <p>FoldX is a simple folding board that turns shirts, tops and trousers into neat, uniform stacks. No more crooked piles after a long day.</p>
+      <div class="btns">
+        <a href="#pricing" class="btn btn-cta">Get FoldX Today</a>
+        <a href="#how" class="btn btn-ghost">Watch Demo</a>
+      </div>
+      <div class="stats">
+        <div><strong>3 sec</strong>per garment</div>
+        <div><strong>3 steps</strong>to a perfect fold</div>
+        <div><strong>0 skill</strong>needed</div>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="board" role="img" aria-label="Animation of a shirt being folded on the FoldX board">
+        <div class="shirt" aria-hidden="true">
+          <div class="guides"></div>
+          <div class="s tl"></div>
+          <div class="s tc"></div>
+          <div class="s tr"></div>
+          <div class="bw">
+            <div class="s bl"></div>
+            <div class="s bc"></div>
+            <div class="s br"></div>
+          </div>
+          <div class="collar"></div>
+        </div>
+        <span class="tag">Folded in under 3 seconds</span>
+      </div>
+      <button class="btn btn-cta btn-sm" id="foldBtn" type="button">Fold it</button>
+    </div>
+  </div>
+</header>
+
+<section id="features" class="features">
+  <div class="wrap">
+    <h2>Laundry day, finally quick</h2>
+    <p class="lede">Built for people who fold every day and would rather be doing anything else.</p>
+    <div class="grid4">
+      <article class="card" tabindex="0">
+        <div class="ico">⚡</div>
+        <h3>Lightning Fast</h3>
+        <p>Fold clothes in under 3 seconds. A full basket takes minutes, not an evening.</p>
+      </article>
+      <article class="card" tabindex="0">
+        <div class="ico">👕</div>
+        <h3>Uniform &amp; Crisp</h3>
+        <p>Every fold comes out the same size, so closets stay organized and stacks stay upright.</p>
+      </article>
+      <article class="card" tabindex="0">
+        <div class="ico">🎒</div>
+        <h3>Lightweight &amp; Portable</h3>
+        <p>Easy to carry and easy to store. Slide it behind a door or into a drawer.</p>
+      </article>
+      <article class="card" tabindex="0">
+        <div class="ico">💡</div>
+        <h3>Made for Everyone</h3>
+        <p>Ideal for home, travel and dorms. If you wear clothes, FoldX works for you.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="how">
+  <div class="wrap">
+    <h2>Three steps to a perfect fold</h2>
+    <p class="lede">No instructions to memorize. If you can lay a shirt down, you can use FoldX.</p>
+    <div class="steps">
+      <div class="step">
+        <svg viewBox="0 0 200 120" role="img" aria-label="Shirt laid flat on the board">
+          <rect x="30" y="6" width="140" height="108" rx="10" fill="#E6E6EA"/>
+          <path d="M76 18 H124 L152 30 L172 58 L152 74 L140 62 V108 H60 V62 L48 74 L28 58 L48 30 Z" fill="#FF4B3E"/>
+          <path d="M88 18 Q100 34 112 18" fill="#A81F18"/>
+        </svg>
+        <h3>Lay flat</h3>
+        <p>Place your shirt, top or trousers face down on the board and smooth it out.</p>
+      </div>
+      <div class="step">
+        <svg viewBox="0 0 200 120" role="img" aria-label="Side panels folding inward">
+          <rect x="30" y="6" width="140" height="108" rx="10" fill="#E6E6EA"/>
+          <path d="M82 18 H118 L124 22 V108 H76 V22 Z" fill="#FF4B3E"/>
+          <path d="M76 22 L50 34 L40 62 L76 80 Z" fill="#E03A2E"/>
+          <path d="M124 22 L150 34 L160 62 L124 80 Z" fill="#E03A2E"/>
+          <path d="M52 92 H68 M148 92 H132" stroke="#2E2E36" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+        <h3>Fold sides</h3>
+        <p>Swing the left and right panels over the center. The board does the measuring.</p>
+      </div>
+      <div class="step">
+        <svg viewBox="0 0 200 120" role="img" aria-label="Neat finished fold">
+          <rect x="30" y="6" width="140" height="108" rx="10" fill="#E6E6EA"/>
+          <rect x="66" y="18" width="68" height="84" rx="5" fill="#FF4B3E"/>
+          <rect x="66" y="52" width="68" height="50" rx="5" fill="#C22E24"/>
+          <path d="M86 18 Q100 34 114 18" fill="#A81F18"/>
+          <path d="M84 76 l10 10 l22 -22" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>Perfect finish</h3>
+        <p>Lift out a crisp, uniform fold that stacks cleanly in any drawer or shelf.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" class="pricing">
+  <div class="wrap">
+    <h2>Pick your FoldX</h2>
+    <p class="lede">Choose a single board or the combo offer, then fill in the order form below.</p>
+    <div class="price-grid">
+      <div class="price">
+        <h3>Single FoldX</h3>
+        <div class="amt">₹199</div>
+        <p class="note">One board for one household.</p>
+        <ul>
+          <li>Folds shirts, tops and trousers</li>
+          <li>Lightweight and portable</li>
+          <li>Ready to use out of the box</li>
+        </ul>
+        <a class="btn btn-ghost" href="#order" data-pack="single">Order Now</a>
+      </div>
+      <div class="price best">
+        <h3>Combo Offer (2 boards)</h3>
+        <div class="amt">₹349</div>
+        <p class="note">One for home, one for a hostel or trip.</p>
+        <ul>
+          <li>Two FoldX boards</li>
+          <li>Perfect for students and families</li>
+          <li>Save ₹49 versus buying two</li>
+        </ul>
+        <a class="btn btn-dark" href="#order" data-pack="combo">Order Combo</a>
+      </div>
+    </div>
+
+    <div class="order" id="order">
+      <h3>Place your order</h3>
+      <p class="order-note">Fill in your details, then send the order to us by email or copy the message and send it yourself. We confirm delivery details within one working day.</p>
+      <form id="orderForm" novalidate>
+        <div class="fields">
+          <div class="field">
+            <label for="fPack">Pack</label>
+            <select id="fPack">
+              <option value="single">Single FoldX · ₹199</option>
+              <option value="combo">Combo Offer (2 boards) · ₹349</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fQty">Quantity</label>
+            <input id="fQty" type="number" min="1" max="20" value="1" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label for="fName">Full name</label>
+            <input id="fName" type="text" autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="fPhone">Phone number</label>
+            <input id="fPhone" type="tel" autocomplete="tel" inputmode="tel">
+          </div>
+          <div class="field wide">
+            <label for="fAddr">Delivery address</label>
+            <textarea id="fAddr" rows="3" autocomplete="street-address"></textarea>
+          </div>
+        </div>
+        <p class="total">Total <strong id="fTotal">₹199</strong></p>
+        <pre id="fOut" aria-label="Your order message"></pre>
+        <div class="btns">
+          <a class="btn btn-cta" id="fMail" href="mailto:support@foldx.com">Send order by email</a>
+          <button class="btn btn-ghost" id="copyMsg" type="button">Copy order message</button>
+        </div>
+        <p class="status" id="fStatus" role="status"></p>
+        <p class="order-note">Send orders to <code id="mailAddr">support@foldx.com</code>. If the email button does nothing on your device, copy the message and send it to this address.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section id="faq" class="faqs">
+  <div class="wrap">
+    <h2>Questions, answered</h2>
+    <div class="faq-list">
+      <div class="faq">
+        <button type="button" aria-expanded="false">What types of clothes can it fold?</button>
+        <div class="ans"><div><p>FoldX is made for shirts, tops, T-shirts and trousers. Thick items like heavy jackets and bulky sweaters are better folded by hand.</p></div></div>
+      </div>
+      <div class="faq">
+        <button type="button" aria-expanded="false">Is it durable?</button>
+        <div class="ans"><div><p>FoldX is made for everyday use. Keep it dry and store it flat or upright for the longest life.</p></div></div>
+      </div>
+      <div class="faq">
+        <button type="button" aria-expanded="false">What are the shipping details?</button>
+        <div class="ans"><div><p>After you send your order to support@foldx.com, we confirm your address and dispatch within 2 working days. Delivery usually takes 3 to 7 days depending on your city.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="f-top">
+      <div>
+        <div class="logo">Fold<b>X</b></div>
+        <p style="margin-top:8px">Perfect folds in 3 seconds.</p>
+      </div>
+      <div>
+        <p>Contact us</p>
+        <code>support@foldx.com</code>
+      </div>
+    </div>
+    <p class="copy">© <span id="yr">2026</span> FoldX. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var stage=document.getElementById('stage'),btn=document.getElementById('foldBtn');
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function set(done){stage.classList.toggle('done',done);btn.textContent=done?'Unfold':'Fold it';}
+  btn.addEventListener('click',function(){set(!stage.classList.contains('done'));});
+  if(!reduce){setTimeout(function(){set(true);},900);}
+
+  document.querySelectorAll('.faq button').forEach(function(b){
+    b.addEventListener('click',function(){
+      var item=b.parentElement,open=item.classList.contains('open');
+      document.querySelectorAll('.faq').forEach(function(f){
+        f.classList.remove('open');f.querySelector('button').setAttribute('aria-expanded','false');
+      });
+      if(!open){item.classList.add('open');b.setAttribute('aria-expanded','true');}
+    });
+  });
+  document.getElementById('yr').textContent=new Date().getFullYear();
+
+  var PACKS={single:{name:'Single FoldX (1 board)',price:199,tag:'Single'},combo:{name:'Combo Offer (2 boards)',price:349,tag:'Combo'}};
+  var sel=document.getElementById('fPack'),qtyEl=document.getElementById('fQty'),
+      nameEl=document.getElementById('fName'),phoneEl=document.getElementById('fPhone'),addrEl=document.getElementById('fAddr'),
+      out=document.getElementById('fOut'),totalEl=document.getElementById('fTotal'),mail=document.getElementById('fMail'),
+      status=document.getElementById('fStatus'),copyBtn=document.getElementById('copyMsg');
+  var msg='';
+  function qty(){var q=parseInt(qtyEl.value,10);if(!q||q<1)q=1;if(q>20)q=20;return q;}
+  function build(){
+    var pack=PACKS[sel.value],q=qty(),total=pack.price*q;
+    msg=['New FoldX order','Pack: '+pack.name+' x '+q,'Total: ₹'+total,'',
+      'Name: '+(nameEl.value.trim()||'-'),'Phone: '+(phoneEl.value.trim()||'-'),'Address: '+(addrEl.value.trim()||'-')].join('\n');
+    out.textContent=msg;totalEl.textContent='₹'+total;
+    mail.href='mailto:support@foldx.com?subject='+encodeURIComponent('Order - FoldX '+pack.tag)+'&body='+encodeURIComponent(msg);
+  }
+  function valid(){
+    var digits=phoneEl.value.replace(/\D/g,'');
+    if(!nameEl.value.trim()||digits.length<10||!addrEl.value.trim()){
+      status.textContent='Please enter your name, a 10-digit phone number and your delivery address.';return false;
+    }
+    status.textContent='';return true;
+  }
+  [sel,qtyEl,nameEl,phoneEl,addrEl].forEach(function(el){el.addEventListener('input',build);el.addEventListener('change',build);});
+  document.getElementById('orderForm').addEventListener('submit',function(e){e.preventDefault();});
+  document.querySelectorAll('[data-pack]').forEach(function(a){
+    a.addEventListener('click',function(){sel.value=a.getAttribute('data-pack');build();});
+  });
+  mail.addEventListener('click',function(e){build();if(!valid()){e.preventDefault();}});
+  function selectOut(){
+    try{var r=document.createRange();r.selectNodeContents(out);var sl=window.getSelection();sl.removeAllRanges();sl.addRange(r);}catch(e){}
+  }
+  copyBtn.addEventListener('click',function(){
+    build();
+    if(!valid())return;
+    try{
+      navigator.clipboard.writeText(msg).then(function(){status.textContent='Order message copied. Send it to support@foldx.com.';},
+        function(){selectOut();status.textContent='Message selected. Press copy, then send it to support@foldx.com.';});
+    }catch(e){selectOut();status.textContent='Message selected. Press copy, then send it to support@foldx.com.';}
+  });
+  build();
+})();
+</script>
+
+</body>
+</html>
